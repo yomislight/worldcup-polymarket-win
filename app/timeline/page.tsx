@@ -2,8 +2,9 @@ export const dynamic = "force-static";
 export const revalidate = false;
 
 import { MATCHES, TEAMS, teamByCode } from "@/lib/worldcup";
-import { groupStageAnalysis } from "@/lib/model";
+import { groupStageAnalysis, predictedWinner, calcPredictionAccuracy } from "@/lib/model";
 import { getWorldCupMarkets } from "@/lib/polymarket";
+import { STATIC_RESULTS, resultById } from "@/lib/match-results";
 import { Flag } from "@/components/ui";
 import { Countdown } from "@/components/Countdown";
 import Link from "next/link";
@@ -19,6 +20,13 @@ export default async function TimelinePage() {
       if (code) marketByCode.set(code, outcome.price);
     }
   }
+
+  // Pre-compute prediction accuracy from finished matches
+  const finishedWithCodes = STATIC_RESULTS.filter((r) => r.finished).map((r) => {
+    const match = MATCHES.find((m) => m.id === r.id);
+    return { homeCode: match?.home ?? "", awayCode: match?.away ?? "", winner: r.winner };
+  }).filter((r) => r.homeCode && r.awayCode);
+  const accuracy = calcPredictionAccuracy(finishedWithCodes);
 
   const scheduleMatches = [...MATCHES].sort((a, b) => a.kickoff.localeCompare(b.kickoff));
   const groupMatches = scheduleMatches.filter((m) => m.stage === "Group");
@@ -36,6 +44,7 @@ export default async function TimelinePage() {
     return Math.max(p.home, p.draw, p.away) - Math.min(p.home, p.draw, p.away);
   });
   const maxEdge = Math.max(...totalEdges);
+  const finishedCount = STATIC_RESULTS.filter((r) => r.finished).length;
 
   return (
     <div className="space-y-6">
@@ -53,14 +62,15 @@ export default async function TimelinePage() {
             <div className="mt-4 max-w-3xl rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3 text-xs leading-relaxed text-slate-300">
               <span className="font-bold text-emerald-300">重点说明：</span>
               AI 小组赛胜率由 Elo、FIFA 排名、主教练胜率、近一年战绩、核心球员评分共同调整；
-              Polymarket 当前可比项主要是“世界杯冠军盘”，页面用它作为球队市场热度和低估/高估代理，
+              Polymarket 当前可比项主要是"世界杯冠军盘"，页面用它作为球队市场热度和低估/高估代理，
               不是单场胜平负盘口。
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:w-[420px]">
+          <div className="grid grid-cols-2 gap-2 sm:w-[420px] sm:grid-cols-4">
             <ConsoleStat label="比赛日" value={String(days.length)} />
-            <ConsoleStat label="总场次" value={String(scheduleMatches.length)} />
-            <ConsoleStat label="最大分歧" value={`${(maxEdge * 100).toFixed(0)}%`} accent />
+            <ConsoleStat label="已完赛" value={`${finishedCount}场`} />
+            <ConsoleStat label="预测准确" value={`${accuracy.correct}/${accuracy.total}`} />
+            <ConsoleStat label="准确率" value={`${(accuracy.rate * 100).toFixed(0)}%`} accent />
           </div>
         </div>
       </section>
@@ -72,115 +82,170 @@ export default async function TimelinePage() {
             <span className="live-dot h-2 w-2 rounded-full bg-emerald-300" />
           </div>
           <div className="space-y-2">
-            {days.map(([day, matches], index) => (
-              <a
-                key={day}
-                href={`#day-${day}`}
-                className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 transition hover:border-emerald-400/30 hover:bg-emerald-400/10"
-              >
-                <span className="mono w-8 text-xs text-emerald-300">D{String(index + 1).padStart(2, "0")}</span>
-                <span className="flex-1 text-xs text-slate-300">{fmtDate(day)}</span>
-                <span className="mono text-[11px] text-slate-500">{matches.length}场</span>
-              </a>
-            ))}
+            {days.map(([day, matches], index) => {
+              const dayFinished = matches.filter((m) => resultById(m.id)?.finished).length;
+              return (
+                <a
+                  key={day}
+                  href={`#day-${day}`}
+                  className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 transition hover:border-emerald-400/30 hover:bg-emerald-400/10"
+                >
+                  <span className="mono w-8 text-xs text-emerald-300">D{String(index + 1).padStart(2, "0")}</span>
+                  <span className="flex-1 text-xs text-slate-300">{fmtDate(day)}</span>
+                  {dayFinished > 0 ? (
+                    <span className="mono text-[11px] text-emerald-400">{dayFinished}完</span>
+                  ) : (
+                    <span className="mono text-[11px] text-slate-500">{matches.length}场</span>
+                  )}
+                </a>
+              );
+            })}
           </div>
         </aside>
 
         <div className="space-y-5">
-          {days.map(([day, matches], dayIndex) => (
-            <section key={day} id={`day-${day}`} className="zen-panel scroll-mt-28 rounded-xl p-4">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-emerald-400/15 pb-3">
-                <div>
-                  <div className="mono text-[10px] uppercase tracking-[0.24em] text-slate-500">
-                    比赛日 {String(dayIndex + 1).padStart(2, "0")}
+          {days.map(([day, matches], dayIndex) => {
+            const dayFinishedCount = matches.filter((m) => resultById(m.id)?.finished).length;
+            return (
+              <section key={day} id={`day-${day}`} className="zen-panel scroll-mt-28 rounded-xl p-4">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-emerald-400/15 pb-3">
+                  <div>
+                    <div className="mono text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                      比赛日 {String(dayIndex + 1).padStart(2, "0")}
+                    </div>
+                    <h2 className="mt-1 text-xl font-black text-white">{fmtDate(day)}</h2>
                   </div>
-                  <h2 className="mt-1 text-xl font-black text-white">{fmtDate(day)}</h2>
+                  {dayFinishedCount > 0 ? (
+                    <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                      {dayFinishedCount}/{matches.length} 场已完赛
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                      {matches.length} 场赛程
+                    </span>
+                  )}
                 </div>
-                <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                  {matches.length} 场赛程已就绪
-                </span>
-              </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
-                {matches.map((match) => {
-                  const home = match.home ? teamByCode(match.home) : undefined;
-                  const away = match.away ? teamByCode(match.away) : undefined;
-                  const canAnalyze = Boolean(home && away);
-                  const analysis = canAnalyze ? groupStageAnalysis(match.home!, match.away!, marketByCode) : undefined;
-                  const p = analysis?.adjusted;
-                  const favorite =
-                    p && home && away
-                      ? p.home >= p.draw && p.home >= p.away
-                        ? home.zh
-                        : p.away >= p.home && p.away >= p.draw
-                          ? away.zh
-                          : "平局"
-                      : "待定";
-                  const confidence = p ? Math.max(p.home, p.draw, p.away) : 0;
+                <div className="grid gap-3 md:grid-cols-2">
+                  {matches.map((match) => {
+                    const home = match.home ? teamByCode(match.home) : undefined;
+                    const away = match.away ? teamByCode(match.away) : undefined;
+                    const canAnalyze = Boolean(home && away);
+                    const analysis = canAnalyze ? groupStageAnalysis(match.home!, match.away!, marketByCode) : undefined;
+                    const p = analysis?.adjusted;
+                    const result = resultById(match.id);
+                    const isFinished = result?.finished ?? false;
+                    const aiPred = isFinished && match.home && match.away
+                      ? predictedWinner(match.home, match.away)
+                      : undefined;
+                    const isPredCorrect = aiPred && result ? aiPred === result.winner : undefined;
 
-                  return (
-                    <Link
-                      key={match.id}
-                      href={`/match/${match.id}#ai-why`}
-                      className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#07121b]/82 p-4 transition hover:border-emerald-400/30 hover:bg-emerald-400/[0.08]"
-                    >
-                      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" />
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded border border-cyan-400/25 bg-cyan-400/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-200">
-                            {match.stage === "Group" ? `${match.group} 组` : stageLabel(match.stage)}
-                          </span>
-                          <span className="mono text-[11px] text-slate-500">{match.id.toUpperCase()}</span>
+                    const favorite =
+                      p && home && away
+                        ? p.home >= p.draw && p.home >= p.away
+                          ? home.zh
+                          : p.away >= p.home && p.away >= p.draw
+                            ? away.zh
+                            : "平局"
+                        : "待定";
+                    const confidence = p ? Math.max(p.home, p.draw, p.away) : 0;
+
+                    return (
+                      <Link
+                        key={match.id}
+                        href={`/match/${match.id}#ai-why`}
+                        className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#07121b]/82 p-4 transition hover:border-emerald-400/30 hover:bg-emerald-400/[0.08]"
+                      >
+                        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" />
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded border border-cyan-400/25 bg-cyan-400/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-200">
+                              {match.stage === "Group" ? `${match.group} 组` : stageLabel(match.stage)}
+                            </span>
+                            <span className="mono text-[11px] text-slate-500">{match.id.toUpperCase()}</span>
+                          </div>
+                          {isFinished ? (
+                            <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-[11px] font-semibold text-slate-400">
+                              已完赛
+                            </span>
+                          ) : (
+                            <span className="mono text-xs text-emerald-300">
+                              <Countdown to={match.kickoff} />
+                            </span>
+                          )}
                         </div>
-                        <span className="mono text-xs text-emerald-300">
-                          <Countdown to={match.kickoff} />
-                        </span>
-                      </div>
 
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                        <TeamCell code={home?.code} name={home?.zh ?? match.homeLabel ?? "TBD"} align="left" />
-                        <span className="mono text-sm font-bold text-white/35">VS</span>
-                        <TeamCell code={away?.code} name={away?.zh ?? match.awayLabel ?? "TBD"} align="right" />
-                      </div>
-
-                      <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.035] p-3">
-                        <div className="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-                          <span>AI 胜平负 · 公平赔率</span>
-                          <span>倾向 {favorite} · {(confidence * 100).toFixed(0)}% · 点击看依据</span>
-                        </div>
-                        {analysis && p && home && away ? (
-                          <>
-                            <TripletBar home={p.home} draw={p.draw} away={p.away} />
-                            <div className="mt-3 grid grid-cols-3 gap-2">
-                              <OddsCell label={home.zh} value={analysis.fairOdds.home} />
-                              <OddsCell label="平局" value={analysis.fairOdds.draw} />
-                              <OddsCell label={away.zh} value={analysis.fairOdds.away} />
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                          <TeamCell code={home?.code} name={home?.zh ?? match.homeLabel ?? "TBD"} align="left" />
+                          {isFinished && result ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="mono text-lg font-black text-white">
+                                {result.homeScore} : {result.awayScore}
+                              </span>
+                              <span className="text-[9px] uppercase tracking-widest text-slate-500">终场</span>
                             </div>
-                          </>
-                        ) : (
-                          <div className="rounded-md border border-white/10 bg-[#07121b]/70 px-3 py-3 text-xs text-slate-500">
-                            淘汰赛对阵尚未产生，待参赛队确定后自动启用 AI 胜率和盘口分歧分析。
+                          ) : (
+                            <span className="mono text-sm font-bold text-white/35">VS</span>
+                          )}
+                          <TeamCell code={away?.code} name={away?.zh ?? match.awayLabel ?? "TBD"} align="right" />
+                        </div>
+
+                        {/* AI prediction result badge for finished matches */}
+                        {isFinished && aiPred !== undefined && result && (
+                          <div className={`mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold
+                            ${isPredCorrect
+                              ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                              : "border-rose-400/25 bg-rose-400/10 text-rose-300"}`}>
+                            <span className="text-sm">{isPredCorrect ? "✓" : "✗"}</span>
+                            <span>
+                              AI 预测{isPredCorrect ? "正确" : "有误"} ·{" "}
+                              预测<span className="font-bold">{winnerLabel(aiPred, home?.zh, away?.zh)}</span>
+                              {!isPredCorrect && (
+                                <> · 实际<span className="font-bold">{winnerLabel(result.winner, home?.zh, away?.zh)}</span></>
+                              )}
+                            </span>
                           </div>
                         )}
-                      </div>
 
-                      {analysis && home && away && (
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                          <MarketProxy label={home.zh} value={analysis.market.home.marketChampion} edge={analysis.market.home.edge} />
-                          <MarketProxy label={away.zh} value={analysis.market.away.marketChampion} edge={analysis.market.away.edge} />
+                        <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+                          <div className="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+                            <span>AI 胜平负 · 公平赔率</span>
+                            <span>倾向 {favorite} · {(confidence * 100).toFixed(0)}% · 点击看依据</span>
+                          </div>
+                          {analysis && p && home && away ? (
+                            <>
+                              <TripletBar home={p.home} draw={p.draw} away={p.away} />
+                              <div className="mt-3 grid grid-cols-3 gap-2">
+                                <OddsCell label={home.zh} value={analysis.fairOdds.home} />
+                                <OddsCell label="平局" value={analysis.fairOdds.draw} />
+                                <OddsCell label={away.zh} value={analysis.fairOdds.away} />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="rounded-md border border-white/10 bg-[#07121b]/70 px-3 py-3 text-xs text-slate-500">
+                              淘汰赛对阵尚未产生，待参赛队确定后自动启用 AI 胜率和盘口分歧分析。
+                            </div>
+                          )}
                         </div>
-                      )}
 
-                      <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
-                        <span className="truncate">{match.venue}</span>
-                        <span className="shrink-0 text-slate-400">{match.city}</span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                        {analysis && home && away && (
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <MarketProxy label={home.zh} value={analysis.market.home.marketChampion} edge={analysis.market.home.edge} />
+                            <MarketProxy label={away.zh} value={analysis.market.away.marketChampion} edge={analysis.market.away.edge} />
+                          </div>
+                        )}
+
+                        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+                          <span className="truncate">{match.venue}</span>
+                          <span className="shrink-0 text-slate-400">{match.city}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
 
           {final && (
             <section className="zen-panel rounded-xl p-4">
@@ -264,6 +329,12 @@ function ConsoleStat({ label, value, accent }: { label: string; value: string; a
       <div className={`mono mt-1 text-xl font-black ${accent ? "zen-text" : "text-white"}`}>{value}</div>
     </div>
   );
+}
+
+function winnerLabel(w: "home" | "draw" | "away", homeZh?: string, awayZh?: string): string {
+  if (w === "draw") return "平局";
+  if (w === "home") return homeZh ?? "主队";
+  return awayZh ?? "客队";
 }
 
 function fmtDate(d: string): string {

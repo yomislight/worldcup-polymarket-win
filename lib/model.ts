@@ -216,3 +216,30 @@ export function championProbabilities(): { team: Team; prob: number }[] {
 export function modelChampionFor(code: string): number {
   return championProbabilities().find((c) => c.team.code === code)?.prob ?? 0;
 }
+
+// Given a finished match, return what the model predicted as the winner.
+export function predictedWinner(
+  homeCode: string,
+  awayCode: string,
+): "home" | "draw" | "away" {
+  const p = aiMatchProbabilities(homeCode, awayCode);
+  if (p.home >= p.draw && p.home >= p.away) return "home";
+  if (p.away >= p.home && p.away >= p.draw) return "away";
+  return "draw";
+}
+
+export type PredictionAccuracy = {
+  correct: number;
+  total: number;
+  rate: number;
+};
+
+export function calcPredictionAccuracy(
+  results: { homeCode: string; awayCode: string; winner: "home" | "draw" | "away" }[],
+): PredictionAccuracy {
+  let correct = 0;
+  for (const r of results) {
+    if (predictedWinner(r.homeCode, r.awayCode) === r.winner) correct++;
+  }
+  return { correct, total: results.length, rate: results.length ? correct / results.length : 0 };
+}

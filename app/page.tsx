@@ -2,8 +2,9 @@ import { getWorldCupMarkets, divergenceSignals } from "@/lib/polymarket";
 import { MarketCard } from "@/components/MarketCard";
 import { SectionTitle, Flag } from "@/components/ui";
 import { LiveWinnerTable } from "@/components/LiveWinnerTable";
-import { modelChampionFor, championProbabilities, groupStageAnalysis } from "@/lib/model";
+import { modelChampionFor, championProbabilities, groupStageAnalysis, calcPredictionAccuracy } from "@/lib/model";
 import { MATCHES, TEAMS } from "@/lib/worldcup";
+import { STATIC_RESULTS } from "@/lib/match-results";
 import { ScannerConsole } from "@/components/ScannerConsole";
 import Link from "next/link";
 
@@ -26,14 +27,25 @@ export default async function Home() {
     }
   }
 
-  // 获取最近的 3 场单场小组赛，用于临近焦点对决雷达
+  // Compute AI prediction accuracy from finished match results
+  const finishedWithCodes = STATIC_RESULTS.filter((r) => r.finished).map((r) => {
+    const match = MATCHES.find((m) => m.id === r.id);
+    return { homeCode: match?.home ?? "", awayCode: match?.away ?? "", winner: r.winner };
+  }).filter((r) => r.homeCode && r.awayCode);
+  const accuracy = calcPredictionAccuracy(finishedWithCodes);
+
+  // IDs of already-finished matches
+  const finishedIds = new Set(STATIC_RESULTS.filter((r) => r.finished).map((r) => r.id));
+
+  // Pass next 20 non-finished matches so ScannerConsole can filter to today on client
   const upcomingMatches = [...MATCHES]
-    .filter((m) => m.home && m.away)
+    .filter((m) => m.home && m.away && !finishedIds.has(m.id))
     .sort((a, b) => a.kickoff.localeCompare(b.kickoff))
-    .slice(0, 3)
+    .slice(0, 20)
     .map((m) => {
       const homeTeam = codeToTeam.get(m.home!)!;
       const awayTeam = codeToTeam.get(m.away!)!;
+      if (!homeTeam || !awayTeam) return null;
       const analysis = groupStageAnalysis(m.home!, m.away!, marketByCode);
       return {
         id: m.id,
@@ -64,7 +76,8 @@ export default async function Home() {
           away: analysis.adjusted.away,
         },
       };
-    });
+    })
+    .filter((m): m is NonNullable<typeof m> => m !== null);
 
   return (
     <div className="space-y-12">
@@ -73,6 +86,7 @@ export default async function Home() {
         totalVolume={totalVol}
         teamsCount={TEAMS.length}
         upcomingMatches={upcomingMatches}
+        accuracy={accuracy}
       />
 
       {/* ---------- WINNER MARKET FOCUS ---------- */}
@@ -94,6 +108,19 @@ export default async function Home() {
                 <MiniStat label="总成交" value={`$${abbr(winner.volume)}`} />
                 <MiniStat label="流动性" value={`$${abbr(winner.liquidity)}`} />
               </div>
+              {/* AI prediction accuracy summary */}
+              {accuracy.total > 0 && (
+                <div className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">AI 预测战绩</div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-white">{(accuracy.rate * 100).toFixed(0)}%</span>
+                    <span className="text-sm text-slate-400">准确率 ({accuracy.correct}/{accuracy.total} 场)</span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-slate-500">
+                    基于已完赛 {accuracy.total} 场小组赛实际结果统计
+                  </div>
+                </div>
+              )}
               <Link
                 href="https://polymarket.com/zh/event/world-cup-winner/will-france-win-the-2026-fifa-world-cup-924"
                 target="_blank"
