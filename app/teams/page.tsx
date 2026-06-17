@@ -4,7 +4,6 @@ import { formMarks, getTeamInsight } from "@/lib/team-insights";
 import Link from "next/link";
 
 export const dynamic = "force-static";
-export const revalidate = 3600;
 
 export default function TeamsPage() {
   const groups = GROUPS.map((group) => {
@@ -24,9 +23,9 @@ export default function TeamsPage() {
         <div className="zen-scanline" aria-hidden />
         <div className="relative grid gap-5 lg:grid-cols-[1fr_440px] lg:items-end">
           <div>
-            <div className="mono text-[11px] uppercase tracking-[0.28em] text-emerald-300">team matrix</div>
+            <div className="mono text-[11px] uppercase tracking-[0.28em] text-emerald-300">球队矩阵</div>
             <h1 className="mt-2 text-3xl font-black tracking-normal text-white md:text-4xl">
-              球队 <span className="zen-text">Group Radar</span>
+              球队 <span className="zen-text">小组雷达</span>
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
               按小组读取球队池，用 Elo 强度、FIFA 排名和模型夺冠概率生成小组雷达，点击球队进入完整档案。
@@ -54,13 +53,13 @@ export default function TeamsPage() {
                   <div>
                     <div className="text-lg font-black text-white">{group} 组扫描</div>
                     <div className="text-xs text-slate-500">
-                      favorite node: <span className="text-slate-300">{favorite.zh}</span>
+                      首选球队: <span className="text-slate-300">{favorite.zh}</span>
                     </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-right">
-                  <SmallStat label="avg elo" value={String(avgElo)} />
-                  <SmallStat label="model pool" value={`${(totalModelProb * 100).toFixed(1)}%`} />
+                  <SmallStat label="平均 ELO" value={String(avgElo)} />
+                  <SmallStat label="模型总胜率" value={`${(totalModelProb * 100).toFixed(1)}%`} />
                 </div>
               </div>
 
@@ -88,7 +87,7 @@ export default function TeamsPage() {
                           <span className="mono text-[10px] uppercase text-slate-500">{team.confederation}</span>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-                          <span className="truncate">coach: {insight.coach.name}</span>
+                          <span className="truncate">主教练: {insight.coach.name}</span>
                           <span className="flex gap-1">
                             {formMarks(team.code).slice(0, 3).map((mark, markIndex) => (
                               <span key={`${mark}-${markIndex}`} className={mark === "W" ? "text-emerald-300" : mark === "D" ? "text-cyan-200" : "text-violet-200"}>
@@ -111,8 +110,8 @@ export default function TeamsPage() {
                       </div>
 
                       <div className="grid w-[86px] grid-cols-2 gap-1 text-right">
-                        <MiniMetric label="rank" value={`#${team.fifaRank}`} />
-                        <MiniMetric label="elo" value={String(team.elo)} />
+                        <MiniMetric label="排名" value={`#${team.fifaRank}`} />
+                        <MiniMetric label="ELO" value={String(team.elo)} />
                       </div>
                     </Link>
                   );

@@ -40,9 +40,9 @@ export default async function TimelinePage() {
         <div className="zen-scanline" aria-hidden />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mono text-[11px] uppercase tracking-[0.28em] text-emerald-300">schedule scanner</div>
+            <div className="mono text-[11px] uppercase tracking-[0.28em] text-emerald-300">赛程扫描仪</div>
             <h1 className="mt-2 text-3xl font-black tracking-normal text-white md:text-4xl">
-              赛程时间线 <span className="zen-text">AI Queue</span>
+              赛程时间线 <span className="zen-text">AI 队列</span>
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
               按比赛日扫描小组赛，结合倒计时、场馆、胜平负概率和模型分歧，快速定位最值得关注的赛程窗口。
@@ -63,7 +63,7 @@ export default async function TimelinePage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <aside className="zen-panel h-fit rounded-xl p-4">
+        <aside className="zen-panel sticky top-20 h-fit max-h-[calc(100vh-120px)] overflow-y-auto rounded-xl p-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-track]:bg-transparent">
           <div className="mb-3 flex items-center justify-between">
             <span className="zen-text text-sm font-bold">扫描索引</span>
             <span className="live-dot h-2 w-2 rounded-full bg-emerald-300" />
@@ -89,12 +89,12 @@ export default async function TimelinePage() {
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-emerald-400/15 pb-3">
                 <div>
                   <div className="mono text-[10px] uppercase tracking-[0.24em] text-slate-500">
-                    matchday {String(dayIndex + 1).padStart(2, "0")}
+                    比赛日 {String(dayIndex + 1).padStart(2, "0")}
                   </div>
                   <h2 className="mt-1 text-xl font-black text-white">{fmtDate(day)}</h2>
                 </div>
                 <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                  {matches.length} fixtures queued
+                  {matches.length} 场赛程已就绪
                 </span>
               </div>
 
@@ -183,7 +183,7 @@ export default async function TimelinePage() {
             <section className="zen-panel rounded-xl p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="mono text-[10px] uppercase tracking-[0.24em] text-emerald-300">final node</div>
+                  <div className="mono text-[10px] uppercase tracking-[0.24em] text-emerald-300">决赛节点</div>
                   <div className="mt-1 text-lg font-black text-white">决赛 · {fmtDate(final.kickoff.slice(0, 10))}</div>
                   <div className="text-sm text-slate-500">{final.venue} · {final.city}</div>
                 </div>

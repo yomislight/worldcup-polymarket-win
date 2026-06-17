@@ -4,7 +4,6 @@ import { modelChampionFor } from "@/lib/model";
 import Link from "next/link";
 
 export const dynamic = "force-static";
-export const revalidate = 3600;
 
 const ATTR_LABELS = ["速", "射", "传", "盘", "防", "体"];
 const STAR_PRIOR: Record<string, number> = {
@@ -48,9 +47,9 @@ export default function PlayersPage() {
         <div className="zen-scanline" aria-hidden />
         <div className="relative grid gap-5 lg:grid-cols-[1fr_420px] lg:items-end">
           <div>
-            <div className="mono text-[11px] uppercase tracking-[0.28em] text-emerald-300">player scanner</div>
+            <div className="mono text-[11px] uppercase tracking-[0.28em] text-emerald-300">球员扫描仪</div>
             <h1 className="mt-2 text-3xl font-black tracking-normal text-white md:text-4xl">
-              球员 <span className="zen-text">Watchlist Rank</span>
+              球员 <span className="zen-text">看好指数排行</span>
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
               按 JMWL 看好指数排序：球员评分、所在队夺冠概率、位置影响和六维能力峰值共同加权，排出最值得关注的球员。
@@ -68,7 +67,7 @@ export default function PlayersPage() {
         <aside className="zen-panel h-fit rounded-xl p-4">
           <div className="mb-3 flex items-center justify-between border-b border-emerald-400/15 pb-3">
             <div>
-              <div className="mono text-[10px] uppercase tracking-[0.24em] text-slate-500">top signal</div>
+              <div className="mono text-[10px] uppercase tracking-[0.24em] text-slate-500">重点看好信号</div>
               <div className="mt-1 text-lg font-black text-white">最被看好球员</div>
             </div>
             <span className="live-dot h-2 w-2 rounded-full bg-emerald-300" />
@@ -96,15 +95,15 @@ export default function PlayersPage() {
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2">
-                <SmallStat label="rating" value={leader.rating.toFixed(1)} />
-                <SmallStat label="team prob" value={`${(modelChampionFor(leader.team) * 100).toFixed(1)}%`} />
-                <SmallStat label="watch" value={leader.watchScore.toFixed(0)} />
+                <SmallStat label="球员评分" value={leader.rating.toFixed(1)} />
+                <SmallStat label="夺冠概率" value={`${(modelChampionFor(leader.team) * 100).toFixed(1)}%`} />
+                <SmallStat label="看好指数" value={leader.watchScore.toFixed(0)} />
               </div>
             </Link>
           )}
 
           <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.035] p-3">
-            <div className="mb-3 mono text-[10px] uppercase tracking-[0.22em] text-slate-500">position mix</div>
+            <div className="mb-3 mono text-[10px] uppercase tracking-[0.22em] text-slate-500">位置分布</div>
             <div className="grid grid-cols-4 gap-2">
               {["FW", "MF", "DF", "GK"].map((role) => (
                 <div key={role} className="rounded-lg border border-white/10 bg-[#07121b]/70 px-2 py-2 text-center">
@@ -154,7 +153,7 @@ export default function PlayersPage() {
                       </div>
                       <div className="mono text-right">
                         <div className="zen-text text-2xl font-black">{player.watchScore.toFixed(0)}</div>
-                        <div className="text-[10px] uppercase tracking-wider text-slate-500">watch</div>
+                        <div className="text-[10px] uppercase tracking-wider text-slate-500">看好指数</div>
                       </div>
                     </div>
 

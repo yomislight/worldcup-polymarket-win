@@ -38,10 +38,11 @@ const WC_EVENT_SLUGS = [
   "fifa-world-cup-2026-winner",
 ];
 
-async function getJSON(url: string) {
+async function getJSON(url: string, live = false) {
   const res = await fetch(url, {
     headers: { accept: "application/json" },
-    next: { revalidate: 120 }, // cache 2 min
+    // live 模式绕过数据缓存（供 /api/live 轮询），否则缓存 2 分钟
+    ...(live ? { cache: "no-store" as RequestCache } : { next: { revalidate: 120 } }),
   });
   if (!res.ok) throw new Error(`Polymarket ${res.status}`);
   return res.json();
@@ -101,20 +102,20 @@ function eventToMarket(ev: any): Market {
   };
 }
 
-export async function getWorldCupMarkets(): Promise<Market[]> {
+export async function getWorldCupMarkets(opts?: { live?: boolean }): Promise<Market[]> {
   const out: Market[] = [];
   const seen = new Set<string>();
-  for (const slug of WC_EVENT_SLUGS) {
-    try {
-      const data = await getJSON(`${GAMMA}/events?slug=${slug}`);
-      const events = Array.isArray(data) ? data : [data];
-      for (const ev of events) {
-        if (!ev || seen.has(String(ev.id))) continue;
-        seen.add(String(ev.id));
-        out.push(eventToMarket(ev));
-      }
-    } catch {
-      /* skip unavailable slug */
+  // 并行拉取所有 slug，整体延迟从 5 次串行降到 1 次往返
+  const results = await Promise.allSettled(
+    WC_EVENT_SLUGS.map((slug) => getJSON(`${GAMMA}/events?slug=${slug}`, opts?.live))
+  );
+  for (const r of results) {
+    if (r.status !== "fulfilled") continue; // skip unavailable slug
+    const events = Array.isArray(r.value) ? r.value : [r.value];
+    for (const ev of events) {
+      if (!ev || seen.has(String(ev.id))) continue;
+      seen.add(String(ev.id));
+      out.push(eventToMarket(ev));
     }
   }
   // Fallback discovery if curated slugs missed: search soccer tag.

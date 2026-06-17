@@ -1,47 +1,69 @@
 import { getWorldCupMarkets, divergenceSignals } from "@/lib/polymarket";
 import { MarketCard } from "@/components/MarketCard";
 import { SectionTitle, Flag } from "@/components/ui";
-import { modelChampionFor, championProbabilities } from "@/lib/model";
+import { LiveWinnerTable } from "@/components/LiveWinnerTable";
+import { modelChampionFor, championProbabilities, groupStageAnalysis } from "@/lib/model";
 import { MATCHES, TEAMS } from "@/lib/worldcup";
-import { safeChampion } from "@/lib/ai";
 import { ScannerConsole } from "@/components/ScannerConsole";
-import { formatSignedPct, recommendYesNo } from "@/lib/trade-recommendation";
 import Link from "next/link";
 
-export const revalidate = 120;
+export const dynamic = "force-static";
 
 export default async function Home() {
   const markets = await getWorldCupMarkets();
   const winner = markets.find((m) => m.slug?.includes("winner")) ?? markets[0];
 
-  // Value radar: model champion prob vs Polymarket implied prob.
   const nameToCode = new Map(TEAMS.map((t) => [t.name, t.code]));
-  const signals = winner
-    ? divergenceSignals(winner, (name) => {
-        const code = nameToCode.get(name);
-        return code ? modelChampionFor(code) : 0;
-      }).slice(0, 6)
-    : [];
-
   const totalVol = markets.reduce((s, m) => s + m.volume, 0);
-  const openingMatch = [...MATCHES].sort((a, b) => a.kickoff.localeCompare(b.kickoff))[0];
   const codeToTeam = new Map(TEAMS.map((t) => [t.code, t]));
-  const openingHome = openingMatch.home ? codeToTeam.get(openingMatch.home)?.zh : openingMatch.homeLabel;
-  const openingAway = openingMatch.away ? codeToTeam.get(openingMatch.away)?.zh : openingMatch.awayLabel;
 
-  // AI (MiniMax) independent champion pricing vs Polymarket implied prob.
-  const aiChamp = await safeChampion();
   const marketByCode = new Map<string, number>();
-  if (winner)
-    for (const o of winner.outcomes) {
-      const code = nameToCode.get(o.label);
-      if (code) marketByCode.set(code, o.price);
+  if (winner) {
+    for (const outcome of winner.outcomes) {
+      const code = nameToCode.get(outcome.label);
+      if (code) marketByCode.set(code, outcome.price);
     }
-  const aiRows = aiChamp
-    .filter((a) => marketByCode.has(a.code))
-    .map((a) => ({ ...a, market: marketByCode.get(a.code)!, edge: a.prob - marketByCode.get(a.code)! }))
-    .sort((x, y) => Math.abs(y.edge) - Math.abs(x.edge))
-    .slice(0, 6);
+  }
+
+  // 获取最近的 3 场单场小组赛，用于临近焦点对决雷达
+  const upcomingMatches = [...MATCHES]
+    .filter((m) => m.home && m.away)
+    .sort((a, b) => a.kickoff.localeCompare(b.kickoff))
+    .slice(0, 3)
+    .map((m) => {
+      const homeTeam = codeToTeam.get(m.home!)!;
+      const awayTeam = codeToTeam.get(m.away!)!;
+      const analysis = groupStageAnalysis(m.home!, m.away!, marketByCode);
+      return {
+        id: m.id,
+        stage: m.stage,
+        group: m.group,
+        kickoff: m.kickoff,
+        venue: m.venue,
+        city: m.city,
+        home: {
+          code: homeTeam.code,
+          zh: homeTeam.zh,
+          name: homeTeam.name,
+          marketChampion: analysis.market.home.marketChampion,
+          modelChampion: analysis.market.home.modelChampion,
+          edge: analysis.market.home.edge,
+        },
+        away: {
+          code: awayTeam.code,
+          zh: awayTeam.zh,
+          name: awayTeam.name,
+          marketChampion: analysis.market.away.marketChampion,
+          modelChampion: analysis.market.away.modelChampion,
+          edge: analysis.market.away.edge,
+        },
+        aiProb: {
+          home: analysis.adjusted.home,
+          draw: analysis.adjusted.draw,
+          away: analysis.adjusted.away,
+        },
+      };
+    });
 
   return (
     <div className="space-y-12">
@@ -49,22 +71,19 @@ export default async function Home() {
         marketsCount={markets.length}
         totalVolume={totalVol}
         teamsCount={TEAMS.length}
-        topSignals={signals}
-        kickoff={openingMatch.kickoff}
-        openingMatch={`${openingHome ?? "揭幕战"} vs ${openingAway ?? "待定"}`}
-        openingVenue={`${openingMatch.city} · ${openingMatch.venue}`}
+        upcomingMatches={upcomingMatches}
       />
 
       {/* ---------- WINNER MARKET FOCUS ---------- */}
       {winner && (
         <section id="winner-market">
           <SectionTitle sub="AI 概率高于市场价：偏向买 YES；AI 概率低于市场价：偏向买 NO；差值小于 2pt 则观望">
-            <span className="zen-text">总盘口分析</span> · World Cup Winner
+            <span className="zen-text">总盘口分析</span> · 世界杯总冠军
           </SectionTitle>
           <div className="grid gap-4 lg:grid-cols-[0.95fr_1.45fr]">
             <div className="card p-5">
-              <div className="text-xs font-bold uppercase tracking-widest text-emerald-300">Polymarket Event</div>
-              <h2 className="mt-2 text-2xl font-black text-white">{winner.title || "World Cup Winner"}</h2>
+              <div className="text-xs font-bold uppercase tracking-widest text-emerald-300">Polymarket 预测盘口</div>
+              <h2 className="mt-2 text-2xl font-black text-white">{winner.title || "世界杯总冠军"}</h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-400">
                 这里作为全站主盘口：用实时隐含概率、成交量、流动性和 AI 独立概率做差，输出冠军盘错价信号。
               </p>
@@ -84,131 +103,21 @@ export default async function Home() {
               </Link>
             </div>
 
-            <div className="card overflow-hidden">
-              <div className="grid grid-cols-[1.1fr_0.62fr_0.62fr_0.78fr_0.78fr] gap-2 border-b border-white/10 px-4 py-2.5 text-xs uppercase tracking-wide text-slate-400">
-                <span>球队</span>
-                <span className="text-right">隐含概率</span>
-                <span className="text-right">AI胜率</span>
-                <span className="text-right">建议</span>
-                <span className="text-right">Edge</span>
-              </div>
-              {winner.outcomes.slice(0, 10).map((o) => {
+            <LiveWinnerTable
+              fallbackUrl={winner.url}
+              rows={winner.outcomes.slice(0, 10).map((o) => {
                 const code = nameToCode.get(o.label);
-                const model = code ? modelChampionFor(code) : 0;
-                const rec = model > 0 ? recommendYesNo(model, o.price) : undefined;
-                return (
-                  <Link
-                    key={o.label}
-                    href={o.url ?? winner.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="grid grid-cols-[1.1fr_0.62fr_0.62fr_0.78fr_0.78fr] items-center gap-2 border-b border-white/5 px-4 py-2.5 text-sm transition hover:bg-white/5 last:border-0"
-                  >
-                    <span className="flex items-center gap-2 font-medium text-white">
-                      {code && <Flag code={code} className="h-4 w-6" />}
-                      {o.label}
-                    </span>
-                    <span className="text-right font-bold tabular-nums text-emerald-300">
-                      {(o.price * 100).toFixed(2)}%
-                    </span>
-                    <span className="text-right tabular-nums text-slate-300">{model > 0 ? `${(model * 100).toFixed(1)}%` : "--"}</span>
-                    <span className="text-right">{rec ? <TradeBadge label={rec.label} tone={rec.tone} /> : "--"}</span>
-                    <span className={`text-right tabular-nums ${rec?.tone === "yes" ? "text-emerald-300" : rec?.tone === "no" ? "text-orange-300" : "text-slate-400"}`}>
-                      {rec ? formatSignedPct(rec.edge) : "--"}
-                    </span>
-                  </Link>
-                );
+                return {
+                  label: o.label,
+                  code,
+                  price: o.price,
+                  model: code ? modelChampionFor(code) : 0,
+                  url: o.url,
+                };
               })}
-            </div>
+            />
           </div>
         </section>
-      )}
-
-      {/* ---------- AI PRICING vs MARKET ---------- */}
-      {aiRows.length > 0 ? (
-        <section id="ai">
-          <SectionTitle sub="MiniMax 独立给出夺冠概率（对市场盲测），再与 Polymarket 实时隐含概率对照，找出 AI 眼中的错价">
-            <span className="zen-text">AI 定价</span> vs 市场
-            <span className="ml-2 align-middle text-xs font-normal text-electric">powered by MiniMax</span>
-          </SectionTitle>
-          <div className="grid gap-3 md:grid-cols-2">
-            {aiRows.map((a) => {
-              const under = a.edge > 0;
-              const rec = recommendYesNo(a.prob, a.market);
-              return (
-                <div key={a.code} className="card p-4">
-                  <div className="flex items-center gap-3">
-                    <Flag code={a.code} className="h-7 w-10" />
-                    <div className="flex-1">
-                      <div className="font-semibold text-white">{a.name}</div>
-                      <div className="text-xs text-slate-400">
-                        市场 {(a.market * 100).toFixed(1)}% · AI {(a.prob * 100).toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className={`text-right ${under ? "text-electric" : "text-flame"}`}>
-                      <div className="heading text-2xl">
-                        {under ? "▲" : "▼"} {Math.abs(a.edge * 100).toFixed(1)}%
-                      </div>
-                      <div className="text-[10px] uppercase tracking-wide">
-                        {under ? "AI:被低估" : "AI:被高估"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
-                    <span className="text-xs text-slate-400">{rec.reason}</span>
-                    <TradeBadge label={rec.label} tone={rec.tone} />
-                  </div>
-                  {a.factors.length > 0 && (
-                    <ul className="mt-3 space-y-1 border-t border-white/10 pt-2">
-                      {a.factors.map((f, i) => (
-                        <li key={i} className="flex gap-1.5 text-xs text-slate-300">
-                          <span className="text-gold-300">·</span>
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            * AI 概率为 MiniMax 独立估计，未参考市场赔率；仅供参考，非投资建议。
-          </p>
-        </section>
-      ) : (
-        signals.length > 0 && (
-          <section>
-            <SectionTitle sub="模型胜率 vs 市场隐含概率，差值越大越可能错杀 / 高估">
-              <span className="zen-text">价值雷达</span> · Model vs Market
-            </SectionTitle>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {signals.map((s) => {
-                const code = nameToCode.get(s.label);
-                const under = s.edge > 0;
-                return (
-                  <div key={s.label} className="card flex items-center gap-3 p-4">
-                    {code && <Flag code={code} className="h-7 w-10" />}
-                    <div className="flex-1">
-                      <div className="font-semibold text-white">{s.label}</div>
-                      <div className="text-xs text-slate-400">
-                        市场 {(s.market * 100).toFixed(1)}% · 模型 {(s.model * 100).toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className={`text-right ${under ? "text-electric" : "text-flame"}`}>
-                      <div className="heading text-2xl">
-                        {under ? "▲" : "▼"} {Math.abs(s.edge * 100).toFixed(1)}%
-                      </div>
-                      <div className="text-[10px] uppercase tracking-wide">
-                        {under ? "低估·可关注" : "高估·谨慎"}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )
       )}
 
       {/* ---------- HEAT BOARD ---------- */}
@@ -267,20 +176,6 @@ function MiniStat({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] uppercase tracking-widest text-slate-500">{label}</div>
       <div className="mt-1 font-black tabular-nums text-white">{value}</div>
     </div>
-  );
-}
-
-function TradeBadge({ label, tone }: { label: string; tone: "yes" | "no" | "watch" }) {
-  const cls =
-    tone === "yes"
-      ? "border-emerald-400/35 bg-emerald-400/12 text-emerald-300"
-      : tone === "no"
-        ? "border-orange-400/35 bg-orange-400/12 text-orange-300"
-        : "border-slate-500/30 bg-slate-500/10 text-slate-300";
-  return (
-    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${cls}`}>
-      {label}
-    </span>
   );
 }
 

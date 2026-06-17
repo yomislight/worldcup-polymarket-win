@@ -35,7 +35,7 @@ export function MarketCard({ market, rank }: { market: Market; rank: number }) {
             <div className="flex items-center gap-1.5">
               <span className="chip border border-cyan-400/25 bg-cyan-400/10 text-cyan-200">{market.platform}</span>
               <span className="chip border border-white/10 bg-white/[0.06] text-slate-300">{market.category}</span>
-              {hot && <span className="chip border border-emerald-400/25 bg-emerald-400/10 text-emerald-300">LIVE</span>}
+              {hot && <span className="chip border border-emerald-400/25 bg-emerald-400/10 text-emerald-300">实时</span>}
             </div>
             <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-white group-hover:text-emerald-200">
               {market.title}
@@ -46,10 +46,10 @@ export function MarketCard({ market, rank }: { market: Market; rank: number }) {
       </div>
 
       {leading && (
-        <div className="rounded-lg border border-emerald-400/15 bg-[#07121b]/80 p-3">
+        <div className="rounded-lg border border-emerald-400/15 bg-[#0c1120]/80 p-3">
           <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-slate-500">
-            <span>Top Outcome</span>
-            <span>model confidence {(confidence * 100).toFixed(0)}%</span>
+            <span>领跑选项</span>
+            <span>模型置信度 {(confidence * 100).toFixed(0)}%</span>
           </div>
           <div className="flex items-center gap-2">
             {codeForName(leading.label) && (
@@ -105,7 +105,7 @@ export function MarketCard({ market, rank }: { market: Market; rank: number }) {
                 </div>
                 {rec && (
                   <div className="mt-0.5 text-[10px] text-slate-500">
-                    AI {(model * 100).toFixed(1)}% · edge {formatSignedPct(rec.edge)}
+                    AI {(model * 100).toFixed(1)}% · 胜率差 {formatSignedPct(rec.edge)}
                   </div>
                 )}
               </div>

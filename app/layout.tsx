@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans, Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { Ticker } from "@/components/Ticker";
@@ -6,13 +7,34 @@ import { getWorldCupMarkets } from "@/lib/polymarket";
 import { championProbabilities } from "@/lib/model";
 import { TEAMS } from "@/lib/worldcup";
 
+const sansFont = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+const displayFont = Outfit({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+});
+
+const monoFont = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "JMWL World Cup · AI 世界杯预测市场",
   description:
     "扫描 Polymarket 世界杯预测盘口，以 AI 独立定价、错价雷达和胜率模型发现市场分歧。",
 };
 
-export const revalidate = 120;
+export const dynamic = "force-static";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Live odds ticker fed by real Polymarket data (fail-soft to model odds).
@@ -35,16 +57,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const tickerItems = items.map((i) => ({ ...i, code: codeByName.get(i.label) }));
 
   return (
-    <html lang="zh">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body style={{ ["--font-sans" as string]: "'Inter', system-ui, sans-serif" }}>
+    <html lang="zh" className={`${sansFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
+      <body>
         <div className="content-layer">
           <Nav />
           <Ticker items={tickerItems} />
@@ -80,7 +94,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </div>
               </div>
               <div className="border-t border-white/10 px-6 py-3 text-center text-[11px] text-slate-500 md:px-8">
-                盘口数据来自 Polymarket 公开 API（实时）· AI 分析由 MiniMax 生成。仅供信息参考，非投资建议。
+                盘口数据来自 Polymarket 公开 API · 仅供信息参考，非投资建议。
               </div>
             </div>
           </footer>

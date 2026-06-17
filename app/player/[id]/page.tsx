@@ -5,7 +5,7 @@ import { SectionTitle, Flag, Stat } from "@/components/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-export const revalidate = 3600;
+export const dynamic = "force-static";
 export function generateStaticParams() {
   // Pre-render first 200 players; the rest are served on-demand + cached.
   return PLAYERS.slice(0, 200).map((p) => ({ id: p.id }));

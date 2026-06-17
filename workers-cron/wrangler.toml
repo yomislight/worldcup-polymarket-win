@@ -1,0 +1,11 @@
+name = "pitchodds-cron"
+main = "index.js"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["*/10 * * * *"]
+
+[[kv_namespaces]]
+binding = "NEXT_INC_CACHE_KV"
+id = "4693179360d8403e9500f48f19a2b8d3"

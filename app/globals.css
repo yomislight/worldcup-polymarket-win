@@ -3,15 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Bebas Neue", "Arial Narrow", system-ui, sans-serif;
-  --font-impact: "Anton", "Arial Black", system-ui, sans-serif;
-  --zen-neon: #27f58a;
-  --zen-mint: #13e0c4;
-  --zen-cyan: #22d3ee;
-  --zen-mag: #b26bff;
-  --zen-panel: rgba(8, 17, 30, 0.76);
-  --zen-border: rgba(39, 245, 138, 0.24);
+  --font-impact: var(--font-display), system-ui, sans-serif;
+  --font-mono: var(--font-mono), monospace;
+  --zen-neon: #00E1C4;
+  --zen-mint: #0df5a3;
+  --zen-cyan: #06b6d4;
+  --zen-mag: #8b5cf6;
+  --zen-panel: rgba(15, 23, 42, 0.65);
+  --zen-border: rgba(0, 225, 196, 0.18);
 }
 
 html { scroll-behavior: smooth; }
@@ -19,13 +18,13 @@ html { scroll-behavior: smooth; }
 body {
   @apply bg-ink-950 text-slate-100 font-sans antialiased;
   position: relative;
-  background-color: #05080f;
+  background-color: #070A14;
   background-image:
-    linear-gradient(rgba(39, 245, 138, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(39, 245, 138, 0.05) 1px, transparent 1px),
-    linear-gradient(135deg, rgba(19, 224, 196, 0.07), transparent 38%),
-    linear-gradient(315deg, rgba(178, 107, 255, 0.08), transparent 34%);
-  background-size: 34px 34px, 34px 34px, 100% 100%, 100% 100%;
+    linear-gradient(rgba(0, 225, 196, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 225, 196, 0.015) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(0, 225, 196, 0.04), transparent 45%),
+    linear-gradient(315deg, rgba(99, 102, 241, 0.04), transparent 40%);
+  background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
   background-attachment: fixed;
 }
 
@@ -43,23 +42,24 @@ body::after {
 /* ---- typography ---- */
 .impact {
   font-family: var(--font-impact);
-  letter-spacing: 0;
-  line-height: 0.86;
-  text-transform: uppercase;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 0.9;
 }
 .heading {
   font-family: var(--font-display);
-  letter-spacing: 0.03em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 .italic-skew { transform: skewX(-7deg); transform-origin: left; }
 
 .gold-text {
   @apply bg-clip-text text-transparent;
-  background-image: linear-gradient(100deg, #fff1b8, #ffd84d 35%, #f5c518 60%, #e6b800);
+  background-image: linear-gradient(100deg, #FDE68A, #FBBF24 35%, #D97706 70%, #92400E);
 }
 .flame-text {
   @apply bg-clip-text text-transparent;
-  background-image: linear-gradient(100deg, #ffd84d, #ff8a3c 45%, #ff4d1c);
+  background-image: linear-gradient(100deg, #FEE2E2, #FF8A70 45%, #FF5C38);
 }
 .stroke-text {
   color: transparent;
@@ -77,8 +77,8 @@ body::after {
   position: relative;
 }
 .card:hover {
-  border-color: var(--zen-border);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 32px -14px rgba(39, 245, 138, 0.55);
+  border-color: rgba(0, 225, 196, 0.28);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 24px -10px rgba(0, 225, 196, 0.25);
 }
 /* neon edge highlight that sweeps on hover */
 .card-sweep { overflow: hidden; }
@@ -123,16 +123,22 @@ body::after {
 
 .zen-scanline {
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--zen-neon), transparent);
-  opacity: 0.55;
-  animation: scanline 3.2s linear infinite;
+  inset: 0;
+  background: linear-gradient(180deg, 
+    transparent 0%, 
+    rgba(0, 225, 196, 0.0) 30%, 
+    rgba(0, 225, 196, 0.02) 45%, 
+    rgba(0, 225, 196, 0.08) 50%, 
+    rgba(0, 225, 196, 0.02) 55%, 
+    transparent 70%
+  );
+  background-size: 100% 200%;
+  pointer-events: none;
+  animation: scanline 8s ease-in-out infinite;
 }
 
 .mono {
-  font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono), ui-monospace, Menlo, Monaco, Consolas, monospace;
 }
 
 .live-dot {
@@ -182,11 +188,26 @@ body::after {
 ::-webkit-scrollbar-track { background: transparent; }
 
 @keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(1600%); }
+  0% { background-position: 0% 0%; }
+  50% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
 }
 
 @keyframes live-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.32; }
+}
+
+/* ---- realtime price flash (Ticker / LiveWinnerTable) ---- */
+.flash-up { animation: flash-up 1.4s ease-out; }
+.flash-down { animation: flash-down 1.4s ease-out; }
+
+@keyframes flash-up {
+  0% { background-color: rgba(39, 245, 138, 0.32); box-shadow: 0 0 12px rgba(39, 245, 138, 0.4); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+
+@keyframes flash-down {
+  0% { background-color: rgba(255, 138, 60, 0.30); box-shadow: 0 0 12px rgba(255, 138, 60, 0.38); }
+  100% { background-color: transparent; box-shadow: none; }
 }

@@ -1,6 +1,9 @@
 import { MATCHES, TEAMS, matchById, teamByCode, headToHead, flag } from "@/lib/worldcup";
 
-export const revalidate = 300; // 5 min — matches have live odds
+// force-static：104 场赛事页全部在构建时生成静态 HTML，直接放 CDN Assets，
+// 首次加载 < 200ms。AI 战术分析由客户端组件懒加载（/api/ai/match/[id]），
+// 不阻塞页面渲染，也不消耗 KV 写配额。
+export const dynamic = "force-static";
 export function generateStaticParams() {
   return MATCHES.map((m) => ({ id: m.id }));
 }
@@ -8,8 +11,6 @@ import { groupStageAnalysis, matchProbabilities, scoreMatrix } from "@/lib/model
 import { playersByTeam, playerPhoto } from "@/lib/players";
 import { ProbBar, Flag, SectionTitle, Stat } from "@/components/ui";
 import { Countdown } from "@/components/Countdown";
-import { safeMatch } from "@/lib/ai";
-import { getWorldCupMarkets } from "@/lib/polymarket";
 import { formMarks, getTeamInsight } from "@/lib/team-insights";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -19,24 +20,14 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
   const m = matchById(id);
   if (!m) return notFound();
   if (!m.home || !m.away) return <BracketMatchPage match={m} />;
-  const markets = await getWorldCupMarkets();
-  const winner = markets.find((market) => market.slug?.includes("winner")) ?? markets[0];
-  const codeByName = new Map(TEAMS.map((team) => [team.name, team.code]));
-  const marketByCode = new Map<string, number>();
-  if (winner) {
-    for (const outcome of winner.outcomes) {
-      const code = codeByName.get(outcome.label);
-      if (code) marketByCode.set(code, outcome.price);
-    }
-  }
   const h = teamByCode(m.home)!;
   const a = teamByCode(m.away)!;
   const base = matchProbabilities(m.home, m.away);
-  const analysis = groupStageAnalysis(m.home, m.away, marketByCode);
+  // 不传市场数据（force-static 不能发网络请求），WhyTeamCard 会显示"暂无匹配"
+  const analysis = groupStageAnalysis(m.home, m.away);
   const p = analysis.adjusted;
   const scores = scoreMatrix(m.home, m.away);
   const h2h = headToHead(m.home, m.away);
-  const ai = await safeMatch(m.home, m.away);
   const hInsight = getTeamInsight(h.code);
   const aInsight = getTeamInsight(a.code);
 
@@ -72,14 +63,14 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
       <section className="zen-panel rounded-2xl p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-emerald-400/15 pb-3">
           <div>
-            <div className="mono text-[11px] uppercase tracking-[0.26em] text-emerald-300">ai market brief</div>
+            <div className="mono text-[11px] uppercase tracking-[0.26em] text-emerald-300">AI 市场速览</div>
             <h2 className="mt-1 text-2xl font-black text-white">AI 胜率 / 公平赔率 / Polymarket 对比</h2>
             <p className="mt-1 max-w-3xl text-sm text-slate-400">
               本场仅分析小组赛胜平负。Polymarket 当前对比项来自世界杯冠军盘，用于衡量双方在市场里的整体热度和低估/高估，不等同于本场单场赔率。
             </p>
           </div>
           <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-300">
-            confidence {(analysis.confidence * 100).toFixed(0)}%
+            置信度 {(analysis.confidence * 100).toFixed(0)}%
           </span>
         </div>
 
@@ -107,7 +98,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
       <section id="ai-why" className="zen-panel scroll-mt-28 rounded-2xl p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-emerald-400/15 pb-3">
           <div>
-            <div className="mono text-[11px] uppercase tracking-[0.26em] text-emerald-300">why this probability</div>
+            <div className="mono text-[11px] uppercase tracking-[0.26em] text-emerald-300">胜率分析依据</div>
             <h2 className="mt-1 text-2xl font-black text-white">为什么倾向 {winnerName(h, a, p)}</h2>
             <p className="mt-1 max-w-3xl text-sm text-slate-400">
               这个胜率不是外部盘口，而是 JMWL 的本地模型：先用双方 Elo 算基础胜平负，再用教练胜率、近一年状态和球员池强度调整，最后展示 Polymarket 冠军盘作为市场热度代理。
@@ -154,42 +145,6 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
         <CoachAndForm team={h} insight={hInsight} />
         <CoachAndForm team={a} insight={aInsight} />
       </div>
-
-      {/* AI analysis card */}
-      {ai && (
-        <section className="card relative overflow-hidden p-5">
-          <div className="absolute inset-0 bg-gradient-to-r from-electric/10 to-transparent" />
-          <div className="relative">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="heading text-2xl text-white">
-                🤖 AI 战术分析
-                <span className="ml-2 text-xs font-normal text-electric">powered by MiniMax</span>
-              </h3>
-              <span className="chip bg-electric/20 text-electric">
-                把握度 {(ai.confidence * 100).toFixed(0)}%
-              </span>
-            </div>
-            {ai.summary && <p className="mb-3 text-sm text-slate-200">{ai.summary}</p>}
-            <div className="mb-1 text-center text-xs uppercase tracking-widest text-slate-400">
-              AI 独立胜率（对市场盲测）
-            </div>
-            <ProbBar home={ai.home} draw={ai.draw} away={ai.away} labels={[h.zh, "平局", a.zh]} />
-            {ai.factors.length > 0 && (
-              <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                {ai.factors.map((f, i) => (
-                  <div key={i} className="rounded-xl bg-white/5 p-3 text-xs text-slate-200">
-                    <span className="mr-1 font-bold text-gold-300">{i + 1}</span>
-                    {f}
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="mt-3 text-[11px] text-slate-500">
-              对比上方模型胜率，可看出 AI 与量化模型的分歧。仅供参考，非投资建议。
-            </p>
-          </div>
-        </section>
-      )}
 
       {/* score predictions + form */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -378,7 +333,7 @@ function BracketMatchPage({ match }: { match: NonNullable<ReturnType<typeof matc
       </section>
 
       <section className="zen-panel rounded-2xl p-5">
-        <div className="mono text-[11px] uppercase tracking-[0.26em] text-emerald-300">bracket node</div>
+        <div className="mono text-[11px] uppercase tracking-[0.26em] text-emerald-300">对阵节点</div>
         <h2 className="mt-1 text-2xl font-black text-white">淘汰赛对阵待产生</h2>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">
           这场比赛已纳入完整 104 场时间线，但双方参赛队要等前序比赛结果产生后才能确定。
@@ -468,7 +423,7 @@ function CoachAndForm({
         <Flag code={team.code} className="h-7 w-10" />
         <div>
           <div className="text-lg font-black text-white">{team.zh}</div>
-          <div className="text-xs text-slate-500">coach and recent form</div>
+          <div className="text-xs text-slate-500">主教练与近期状态</div>
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
@@ -484,8 +439,8 @@ function CoachAndForm({
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 text-right">
-          <MiniStat label="win rate" value={`${(winRate * 100).toFixed(0)}%`} />
-          <MiniStat label="record" value={`${coach.wins}-${coach.draws}-${coach.losses}`} />
+          <MiniStat label="胜率" value={`${(winRate * 100).toFixed(0)}%`} />
+          <MiniStat label="战绩" value={`${coach.wins}-${coach.draws}-${coach.losses}`} />
         </div>
       </div>
       <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.035] p-3">

@@ -46,7 +46,7 @@ export function HeatBadge({ heat }: { heat: number }) {
       className={`chip border ${hot ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/10 text-slate-300"}`}
       title="热度 = 24h成交增速·总量·流动性·临场加权"
     >
-      {hot ? "HOT" : "SCAN"} {heat.toFixed(1)}
+      {hot ? "热门" : "扫描"} {heat.toFixed(1)}
     </span>
   );
 }
@@ -78,6 +78,20 @@ export function Stat({ label, value, accent }: { label: string; value: string; a
       <div className={`impact text-2xl ${accent ? "gold-text" : "text-white"}`}>{value}</div>
       <div className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-400">{label}</div>
     </div>
+  );
+}
+
+export function TradeBadge({ label, tone }: { label: string; tone: "yes" | "no" | "watch" }) {
+  const cls =
+    tone === "yes"
+      ? "border-emerald-400/35 bg-emerald-400/12 text-emerald-300"
+      : tone === "no"
+        ? "border-orange-400/35 bg-orange-400/12 text-orange-300"
+        : "border-slate-500/30 bg-slate-500/10 text-slate-300";
+  return (
+    <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-[11px] font-black sm:px-2.5 sm:text-xs ${cls}`}>
+      {label}
+    </span>
   );
 }
 
