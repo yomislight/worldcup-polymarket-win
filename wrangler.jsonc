@@ -8,13 +8,6 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "kv_namespaces": [
-    {
-      // ISR 增量缓存：让 revalidate 在 Workers 上真正生效
-      "binding": "NEXT_INC_CACHE_KV",
-      "id": "4693179360d8403e9500f48f19a2b8d3"
-    }
-  ],
   "services": [
     {
       // memoryQueue 触发后台再验证时需要自引用绑定

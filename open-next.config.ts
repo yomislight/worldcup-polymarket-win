@@ -1,9 +1,10 @@
 import { defineCloudflareConfig } from "@opennextjs/cloudflare";
-import kvIncrementalCache from "@opennextjs/cloudflare/overrides/incremental-cache/kv-incremental-cache";
+import staticAssetsIncrementalCache from "@opennextjs/cloudflare/overrides/incremental-cache/static-assets-incremental-cache";
 
-// populateCache 在每次部署时把 360 个页面写入 KV（约 363 次写入）。
-// revalidate=false + force-cache 确保运行时零额外 KV 写入，只有 cron 的 144次/天。
-// 每天可安全部署 1-2 次（363×2 + 144 = 870 < 1000）。
+// 用 Cloudflare Assets CDN 替代 KV 缓存：
+// - 0 KV 写（不再受 1000次/天 free quota 限制）
+// - 性能更好（直接 CDN 命中）
+// - 所有页面已 force-static + revalidate=false，完美适配
 export default defineCloudflareConfig({
-  incrementalCache: kvIncrementalCache,
+  incrementalCache: staticAssetsIncrementalCache,
 });
