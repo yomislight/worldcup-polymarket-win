@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-static";
+export const revalidate = false;
 export function generateStaticParams() {
   // Pre-render first 200 players; the rest are served on-demand + cached.
   return PLAYERS.slice(0, 200).map((p) => ({ id: p.id }));

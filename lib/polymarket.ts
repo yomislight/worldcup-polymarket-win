@@ -41,8 +41,8 @@ const WC_EVENT_SLUGS = [
 async function getJSON(url: string, live = false) {
   const res = await fetch(url, {
     headers: { accept: "application/json" },
-    // live 模式绕过数据缓存（供 /api/live 轮询），否则缓存 2 分钟
-    ...(live ? { cache: "no-store" as RequestCache } : { next: { revalidate: 120 } }),
+    // 构建时 force-cache 永久缓存，不触发 ISR；live 模式绕过缓存
+    cache: (live ? "no-store" : "force-cache") as RequestCache,
   });
   if (!res.ok) throw new Error(`Polymarket ${res.status}`);
   return res.json();

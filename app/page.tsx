@@ -8,6 +8,7 @@ import { ScannerConsole } from "@/components/ScannerConsole";
 import Link from "next/link";
 
 export const dynamic = "force-static";
+export const revalidate = false;
 
 export default async function Home() {
   const markets = await getWorldCupMarkets();

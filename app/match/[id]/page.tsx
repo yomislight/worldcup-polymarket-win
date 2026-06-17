@@ -4,6 +4,7 @@ import { MATCHES, TEAMS, matchById, teamByCode, headToHead, flag } from "@/lib/w
 // 首次加载 < 200ms。AI 战术分析由客户端组件懒加载（/api/ai/match/[id]），
 // 不阻塞页面渲染，也不消耗 KV 写配额。
 export const dynamic = "force-static";
+export const revalidate = false;
 export function generateStaticParams() {
   return MATCHES.map((m) => ({ id: m.id }));
 }

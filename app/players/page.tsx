@@ -4,6 +4,7 @@ import { modelChampionFor } from "@/lib/model";
 import Link from "next/link";
 
 export const dynamic = "force-static";
+export const revalidate = false;
 
 const ATTR_LABELS = ["速", "射", "传", "盘", "防", "体"];
 const STAR_PRIOR: Record<string, number> = {

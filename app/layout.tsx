@@ -35,6 +35,7 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-static";
+export const revalidate = false;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Live odds ticker fed by real Polymarket data (fail-soft to model odds).

@@ -4,6 +4,7 @@ import { formMarks, getTeamInsight } from "@/lib/team-insights";
 import Link from "next/link";
 
 export const dynamic = "force-static";
+export const revalidate = false;
 
 export default function TeamsPage() {
   const groups = GROUPS.map((group) => {

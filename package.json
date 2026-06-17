@@ -13,8 +13,7 @@
     "lint": "next lint",
     "cf:build": "pnpm clean && opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
     "cf:preview": "pnpm clean && opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare preview",
-    "cf:deploy": "pnpm clean && opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare deploy",
-    "cf:deploy:fast": "pnpm clean && opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && OPEN_NEXT_DEPLOY=1 wrangler deploy && wrangler deploy --config workers-cron/wrangler.toml",
+    "cf:deploy": "pnpm clean && opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare deploy && wrangler deploy --config workers-cron/wrangler.toml",
     "cf:deploy:cron": "wrangler deploy --config workers-cron/wrangler.toml"
   },
   "dependencies": {

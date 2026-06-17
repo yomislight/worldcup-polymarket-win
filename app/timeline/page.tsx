@@ -1,3 +1,6 @@
+export const dynamic = "force-static";
+export const revalidate = false;
+
 import { MATCHES, TEAMS, teamByCode } from "@/lib/worldcup";
 import { groupStageAnalysis } from "@/lib/model";
 import { getWorldCupMarkets } from "@/lib/polymarket";

@@ -1,6 +1,7 @@
 import { TEAMS, teamByCode, teamsInGroup, flag, MATCHES } from "@/lib/worldcup";
 
 export const dynamic = "force-static";
+export const revalidate = false;
 export function generateStaticParams() {
   return TEAMS.map((t) => ({ code: t.code }));
 }
