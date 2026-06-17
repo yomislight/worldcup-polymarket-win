@@ -1,7 +1,8 @@
 # JMWL World Cup · AI 世界杯预测市场分析站
 
-> 🌐 **线上地址：** https://pitchodds.niuniu5658.workers.dev  
-> 💬 **Telegram 社群：** https://t.me/+fcXADOedJYE2OTNl
+|> 🌐 **线上地址：** https://pitchodds.sonic980828.workers.dev  
+|> 💬 **Telegram 社群：** https://t.me/+fcXADOedJYE2OTNl
+> 🐦 **视频解读：** https://youtu.be/UMkeKn-NKYE
 
 ---
 
@@ -144,7 +145,7 @@ npx wrangler deploy
 echo "your_key" | npx wrangler secret put MINIMAX_API_KEY
 ```
 
-**已部署：** https://pitchodds.niuniu5658.workers.dev  
+**已部署：** https://pitchodds.sonic980828.workers.dev  
 **版本：** Next.js 15 + OpenNext 1.19 + Cloudflare Workers · 359 页静态预渲染
 
 ---
