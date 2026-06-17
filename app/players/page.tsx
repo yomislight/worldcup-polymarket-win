@@ -7,6 +7,17 @@ export const dynamic = "force-static";
 export const revalidate = false;
 
 const ATTR_LABELS = ["速", "射", "传", "盘", "防", "体"];
+const ATTR_FULL = ["速度", "射门", "传球", "盘带", "防守", "身体"];
+// Per-attribute accent (electric green / cyan / gold / flame / slate / violet)
+// so a glance tells you "this guy is a shooter" vs "this guy is a wall".
+const ATTR_COLOR: Record<string, string> = {
+  速: "from-emerald-400 to-emerald-200",
+  射: "from-gold-300 to-gold-500",
+  传: "from-cyan-300 to-cyan-500",
+  盘: "from-violet-400 to-fuchsia-400",
+  防: "from-slate-300 to-slate-500",
+  体: "from-orange-400 to-flame",
+};
 const STAR_PRIOR: Record<string, number> = {
   "Kylian Mbappé": 14,
   "Lamine Yamal": 12,
@@ -168,23 +179,50 @@ export default function PlayersPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.035] p-3">
-                  <div className="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-                    <span>能力向量</span>
-                    <span>rating {player.rating.toFixed(1)} · peak {primaryAttr}</span>
+                <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.035] p-3.5">
+                  <div className="mb-2.5 flex items-center justify-between text-[11px] text-slate-400">
+                    <span className="font-semibold tracking-wide">能力向量</span>
+                    <span className="font-mono text-slate-300">
+                      rating <span className="text-white">{player.rating.toFixed(1)}</span>
+                      <span className="mx-1.5 text-slate-600">·</span>
+                      peak <span className="text-gold-300">{primaryAttr}</span>
+                    </span>
                   </div>
-                  <div className="grid grid-cols-6 gap-1.5">
-                    {player.attrs.map((attr, attrIndex) => (
-                      <div key={ATTR_LABELS[attrIndex]}>
-                        <div className="h-14 overflow-hidden rounded bg-white/10">
-                          <div
-                            className="mt-auto h-full rounded bg-gradient-to-t from-emerald-400 to-cyan-300"
-                            style={{ transform: `translateY(${100 - attr}%)` }}
-                          />
+                  <div className="space-y-1.5">
+                    {player.attrs.map((attr, attrIndex) => {
+                      const label = ATTR_LABELS[attrIndex];
+                      const fullLabel = ATTR_FULL[attrIndex];
+                      const grad = ATTR_COLOR[label] ?? "from-emerald-400 to-cyan-300";
+                      return (
+                        <div key={label} className="flex items-center gap-2.5">
+                          <span
+                            className="w-5 shrink-0 text-center text-[11px] font-bold text-slate-400"
+                            title={fullLabel}
+                          >
+                            {label}
+                          </span>
+                          <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-white/[0.08]">
+                            <div
+                              className={`h-full rounded-full bg-gradient-to-r ${grad}`}
+                              style={{ width: `${attr}%` }}
+                            />
+                            {/* tick markers every 20 */}
+                            <div className="pointer-events-none absolute inset-0 flex justify-between">
+                              {[0, 1, 2, 3, 4].map((t) => (
+                                <span
+                                  key={t}
+                                  className="h-full w-px bg-black/30"
+                                  style={{ marginLeft: t === 0 ? 0 : undefined }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="w-8 shrink-0 text-right font-mono text-[11px] font-bold tabular-nums text-white">
+                            {attr}
+                          </span>
                         </div>
-                        <div className="mt-1 text-center text-[10px] text-slate-500">{ATTR_LABELS[attrIndex]}</div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </Link>
