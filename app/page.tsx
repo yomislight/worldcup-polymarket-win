@@ -6,6 +6,7 @@ import { modelChampionFor, championProbabilities, groupStageAnalysis, calcPredic
 import { MATCHES, TEAMS } from "@/lib/worldcup";
 import { STATIC_RESULTS } from "@/lib/match-results";
 import { ScannerConsole } from "@/components/ScannerConsole";
+import { VideoSection } from "@/components/VideoSection";
 import Link from "next/link";
 
 export const dynamic = "force-static";
@@ -88,6 +89,9 @@ export default async function Home() {
         upcomingMatches={upcomingMatches}
         accuracy={accuracy}
       />
+
+      {/* ---------- VIDEO EXPLAINER ---------- */}
+      <VideoSection />
 
       {/* ---------- WINNER MARKET FOCUS ---------- */}
       {winner && (
