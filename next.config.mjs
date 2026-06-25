@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  expireTime: 600,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "flagcdn.com" },

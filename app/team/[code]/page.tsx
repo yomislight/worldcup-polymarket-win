@@ -147,11 +147,14 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
               {fixtures.filter((f) => f.home && f.away).map((f) => {
                 const oppCode = f.home === t.code ? f.away! : f.home!;
                 const opp = teamByCode(oppCode)!;
+                const score = f.score ? `${f.score[0]}-${f.score[1]}` : undefined;
                 return (
                   <Link key={f.id} href={`/match/${f.id}`} className="flex items-center gap-2 px-4 py-2.5 transition hover:bg-white/5">
                     <Flag code={opp.code} className="h-5 w-7" />
                     <span className="flex-1 text-sm text-white">vs {opp.zh}</span>
-                    <span className="text-xs text-slate-400">{f.kickoff.slice(5, 10)}</span>
+                    <span className={`mono text-xs ${score ? "font-bold text-gold-300" : "text-slate-400"}`}>
+                      {score ? `FT ${score}` : f.kickoff.slice(5, 10)}
+                    </span>
                   </Link>
                 );
               })}

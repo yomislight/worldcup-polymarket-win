@@ -31,6 +31,8 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
   const h2h = headToHead(m.home, m.away);
   const hInsight = getTeamInsight(h.code);
   const aInsight = getTeamInsight(a.code);
+  const scoreLabel = m.score ? `${m.score[0]} - ${m.score[1]}` : undefined;
+  const statusLabel = matchStatusLabel(m.status);
 
   return (
     <div className="space-y-8">
@@ -41,12 +43,16 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
           <div className="mb-4 flex items-center justify-center gap-2 text-sm text-slate-300">
             <span className="chip bg-white/10">小组赛 {m.group}组</span>
             <span>·</span>
-            <Countdown to={m.kickoff} />
+            {scoreLabel ? (
+              <span className="mono font-bold text-gold-300">{statusLabel} {scoreLabel}</span>
+            ) : (
+              <Countdown to={m.kickoff} />
+            )}
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <TeamSide team={h} align="right" />
             <div className="text-center">
-              <div className="heading text-4xl gold-text">VS</div>
+              <div className="heading text-4xl gold-text">{scoreLabel ?? "VS"}</div>
               <div className="mt-2 text-xs text-slate-400">{m.venue}</div>
               <div className="text-xs text-slate-500">{m.city}</div>
             </div>
@@ -311,6 +317,8 @@ function ReasonStep({ title, body }: { title: string; body: string }) {
 }
 
 function BracketMatchPage({ match }: { match: NonNullable<ReturnType<typeof matchById>> }) {
+  const scoreLabel = match.score ? `${match.score[0]} - ${match.score[1]}` : undefined;
+  const statusLabel = matchStatusLabel(match.status);
   return (
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-3xl border border-white/10 pitch-stripes p-8">
@@ -319,12 +327,16 @@ function BracketMatchPage({ match }: { match: NonNullable<ReturnType<typeof matc
           <div className="mb-4 flex items-center justify-center gap-2 text-sm text-slate-300">
             <span className="chip bg-white/10">{stageLabel(match.stage)}</span>
             <span>·</span>
-            <Countdown to={match.kickoff} />
+            {scoreLabel ? (
+              <span className="mono font-bold text-gold-300">{statusLabel} {scoreLabel}</span>
+            ) : (
+              <Countdown to={match.kickoff} />
+            )}
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <BracketSide label={match.homeLabel ?? "TBD"} />
             <div>
-              <div className="heading text-4xl gold-text">VS</div>
+              <div className="heading text-4xl gold-text">{scoreLabel ?? "VS"}</div>
               <div className="mt-2 text-xs text-slate-400">{match.venue}</div>
               <div className="text-xs text-slate-500">{match.city}</div>
             </div>
@@ -389,6 +401,12 @@ function stageLabel(stage: string): string {
     Final: "决赛",
   };
   return labels[stage] ?? stage;
+}
+
+function matchStatusLabel(status: string): string {
+  if (status === "finished") return "FT";
+  if (status === "live") return "LIVE";
+  return "未开赛";
 }
 
 function CompareRow({ label, base, adjusted, odds }: { label: string; base: number; adjusted: number; odds: number }) {

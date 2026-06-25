@@ -12,11 +12,11 @@ const ESPN_TO_CODE = {
   ESP:"es",CPV:"cv",BEL:"be",EGY:"eg",KSA:"sa",URU:"uy",IRN:"ir",NZL:"nz",
   FRA:"fr",SEN:"sn",IRQ:"iq",NOR:"no",ARG:"ar",ALG:"dz",AUT:"at",JOR:"jo",
   POR:"pt",COD:"cd",ENG:"gb-eng",CRO:"hr",GHA:"gh",PAN:"pa",UZB:"uz",COL:"co",
-  MOR:"ma",SRB:"rs",MEA:"me",CHI:"cl",BOL:"bo",VEN:"ve",PER:"pe",ECU:"ec",
+  MOR:"ma",SRB:"rs",MEA:"me",CHI:"cl",BOL:"bo",VEN:"ve",PER:"pe",
   CHN:"cn",THA:"th",IND:"in",IRE:"ie",WAL:"gb-wls",NIR:"gb-nir",ISL:"is",
-  SVK:"sk",SVN:"si",HUN:"hu",ROU:"ro",BUL:"bg",GRE:"gr",SRB:"rs",CYP:"cy",
-  NGA:"ng",CMR:"cm",GHA:"gh",MLI:"ml",ZIM:"zw",ZAM:"zm",TAN:"tz",UGA:"ug",
-  KEN:"ke",ETH:"et",ANG:"ao",MOZ:"mz",MDG:"mg",RWA:"rw",SUD:"sd",TUN:"tn",
+  SVK:"sk",SVN:"si",HUN:"hu",ROU:"ro",BUL:"bg",GRE:"gr",CYP:"cy",
+  NGA:"ng",CMR:"cm",MLI:"ml",ZIM:"zw",ZAM:"zm",TAN:"tz",UGA:"ug",
+  KEN:"ke",ETH:"et",ANG:"ao",MOZ:"mz",MDG:"mg",RWA:"rw",SUD:"sd",
 };
 
 function parseArr(s) {
